@@ -1,11 +1,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 
 	"github.com/gomdhtml/internal/utils"
+	log "github.com/gomdhtml/internal/utils/log"
 )
 
 const (
@@ -15,8 +17,12 @@ const (
 
 func main() {
 	outputDir := flag.String("out", defaultOutputDir, "Path to the output directory")
+	debugLogger := flag.Bool("debug", false, "Enable debug log messages")
 	flag.Parse()
 	inputPaths := flag.Args()
+
+	fmt.Println("DEBUG", *debugLogger)
+	log.Setup(*debugLogger)
 
 	inputDir := ""
 	switch len(inputPaths) {
@@ -25,10 +31,14 @@ func main() {
 	case 1:
 		inputDir = inputPaths[0]
 	default:
-		fmt.Println("Error: single input path must be specified")
+		log.Err(errors.New("MultipleInputPaths"), "single input path must be specified")
 		os.Exit(1)
 	}
 
-	fmt.Printf("Render result from \"%s\" into \"%s\" directory", inputDir, *outputDir)
-	utils.CompileCatalog(inputDir, *outputDir)
+	log.Infof("render from %s to %s", inputDir, *outputDir)
+	err := utils.CompileCatalog(inputDir, *outputDir)
+	if err != nil {
+		log.Err(err, "error while compiling catalog")
+	}
+	log.Info("successfully rendered")
 }

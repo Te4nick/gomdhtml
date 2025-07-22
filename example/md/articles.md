@@ -1,4 +1,5 @@
-# Articles
+- [🏠Home](index.md)
+# 📄Articles
 
-- [gomdhtml](gomdhtml.md)
+- [gomdhtml](./articles/gomdhtml.md)
 > render html websites from markdown with golang

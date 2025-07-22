@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	log "github.com/gomdhtml/internal/utils/log"
 	"github.com/yuin/goldmark"
 )
 
@@ -60,7 +61,7 @@ func generateCSSTag(cssFilePath string) template.HTML {
 		return ""
 	}
 
-	return template.HTML("<link rel=\"stylesheet\" href=\"" + cssFilePath + "\">")
+	return template.HTML("<link rel=\"stylesheet\" href=\"/" + cssFilePath + "\">")
 }
 
 func RenderFileHTML(templateFilePath, mdFilePath, cssFilePath, outputFilePath string) error {
@@ -79,8 +80,9 @@ func RenderFileHTML(templateFilePath, mdFilePath, cssFilePath, outputFilePath st
 		return err
 	}
 
-	outHTML, err := os.Create(outputFilePath)
+	outHTML, err := CreateWithDirs(outputFilePath)
 	if err != nil {
+		log.Err(err, "LIGMA")
 		return err
 	}
 	defer outHTML.Close()

@@ -3,6 +3,7 @@ package utils
 import (
 	"io"
 	"os"
+	"path/filepath"
 )
 
 func CopyFile(src, dst string) error {
@@ -12,7 +13,7 @@ func CopyFile(src, dst string) error {
 	}
 	defer sourceFile.Close()
 
-	destinationFile, err := os.Create(dst)
+	destinationFile, err := CreateWithDirs(dst)
 	if err != nil {
 		return err
 	}
@@ -33,4 +34,11 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 	return nil
+}
+
+func CreateWithDirs(filePath string) (*os.File, error) {
+	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
+		return nil, err
+	}
+	return os.Create(filePath)
 }

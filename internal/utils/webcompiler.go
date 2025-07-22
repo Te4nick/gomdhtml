@@ -1,11 +1,14 @@
 package utils
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"errors"
+
+	log "github.com/gomdhtml/internal/utils/log"
 )
 
 const (
@@ -20,20 +23,33 @@ func CompileCatalog(inputDirPath, outputDirPath string) error {
 	htmlDir := filepath.Join(inputDirPath, htmlDirName)
 	cssDir := filepath.Join(inputDirPath, cssDirName)
 
-	if err := os.MkdirAll(filepath.Join(outputDirPath, cssDirName), os.ModePerm); err != nil {
+	if err := os.RemoveAll(outputDirPath); err != nil {
 		return err
 	}
 
-	err := filepath.Walk(mdDir, func(path string, info os.FileInfo, err error) error {
+	if err := os.Mkdir(outputDirPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	err := filepath.WalkDir(mdDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".md") {
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		log.Debug("walking over filename=" + info.Name())
+
+		if !d.IsDir() && strings.HasSuffix(info.Name(), ".md") {
+			log.Debug("entering compile for filename=" + info.Name())
 			relPath, err := filepath.Rel(mdDir, path)
 			if err != nil {
 				return err
 			}
+			log.Debugf("relPath=%s, parentDir=%s", relPath, filepath.Dir(relPath))
+			// if err := os.MkdirAll(filepath.Dir(relPath), os.ModePerm); err != nil {
 
 			htmlFilePath := filepath.Join(htmlDir, strings.TrimSuffix(relPath, ".md")+".html")
 			if _, err := os.Stat(htmlFilePath); os.IsNotExist(err) {
@@ -52,12 +68,15 @@ func CompileCatalog(inputDirPath, outputDirPath string) error {
 			}
 
 			outputFilePath := filepath.Join(outputDirPath, strings.TrimSuffix(relPath, ".md")+".html")
+			log.Debugf("htmlFilePath=%s, path=%s, cssFilePath=%s, outputFilePath=%s", htmlFilePath, path, cssFilePath, outputFilePath)
 			if err := RenderFileHTML(htmlFilePath, path, cssFilePath, outputFilePath); err != nil {
 				return err
 			}
 
-			if err := CopyFile(cssFilePath, filepath.Join(outputDirPath, cssDirName, filepath.Base(cssFilePath))); err != nil {
-				return err
+			if cssFilePath != "" {
+				if err := CopyFile(cssFilePath, filepath.Join(outputDirPath, cssDirName, filepath.Base(cssFilePath))); err != nil {
+					return err
+				}
 			}
 		}
 		return nil

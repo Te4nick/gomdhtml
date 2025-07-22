@@ -14,6 +14,7 @@ go run ./cmd --out ./output ./
 ```
 
 ## Documentation
+### Files and Directories
 This tool accepts input directory path as argument (default `./`) and output directory path with `--out`
 optional argument (default `./output`). It searches markdown files in `md` directory of input directory
 path and pastes them into html files in `html` directory of input directory path. By default tool uses 
@@ -31,15 +32,24 @@ structure with default agruments and compiled files in `output` direcory can be 
 │   ├── .template.html
 │   └── articles.html
 ├── md
-│   ├── index.md
-│   └── articles.md
+│   ├── articles
+│   │   └── gomdhtml.md
+│   ├── articles.md
+│   └── index.md
 └── output
+    ├── articles
+    │   └── gomdhtml.html
     ├── css
     │   ├── .template.css
     │   └── articles.css
-    ├── index.md
-    └── articles.md
+    ├── articles.html
+    └── index.html
 ```
+To create links to other pages just use markdown link with relative path to desired markdown file.
+It will be automatically converted into link to corresponding html file in output directory making
+it consistent between markdown and html navigation.
+
+### HTML Templates
 Tool expects `{{.Content}}` htmx tag in html file to insert markdown content. It also aptionally 
 searches for `{{.CSS}}` tag to insert css file and `{{.Title}}` tag is populated with first H1
 appearence in markdown file. Check `example` project directory for use case.
