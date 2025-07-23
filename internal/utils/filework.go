@@ -36,9 +36,25 @@ func CopyFile(src, dst string) error {
 	return nil
 }
 
+func CopyDir(src string, dst string) error {
+	return os.CopyFS(dst, os.DirFS(src))
+}
+
 func CreateWithDirs(filePath string) (*os.File, error) {
 	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
 		return nil, err
 	}
 	return os.Create(filePath)
+}
+
+func RecreateDir(dirPath string) error {
+	if err := os.RemoveAll(dirPath); err != nil {
+		return err
+	}
+
+	if err := os.Mkdir(dirPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	return nil
 }

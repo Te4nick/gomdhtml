@@ -132,12 +132,9 @@ hr {
 }
 
 /* Special classes for markdown extensions */
-.img-container {
+img {
   text-align: center;
   margin: 1em 0;
-}
-
-.img-container img {
   max-width: 100%;
   height: auto;
   border-radius: 3px;

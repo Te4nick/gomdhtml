@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	titleRe *regexp.Regexp = regexp.MustCompile(`<h1.*?>(.*?)<\/h1>`)
-	linkRe  *regexp.Regexp = regexp.MustCompile(`<a href="([^http][^"]*?)\.md">([^<]*)</a>`)
+	titleHTMLRe *regexp.Regexp = regexp.MustCompile(`<h1.*?>(.*?)<\/h1>`)
+	linkHTMLRe  *regexp.Regexp = regexp.MustCompile(`<a href="([^http][^"]*?)\.md">([^<]*)</a>`)
+	// imgHTMLRe   *regexp.Regexp = regexp.MustCompile(`<img\s+src="([^"]+)"\s+alt="([^"]*)"\s*\/?>`)
 	// ulRe    *regexp.Regexp = regexp.MustCompile(`(?i)(<ul>.*?</ul>)(\s*<ul>.*?</ul>)+`)
 	// liRe    *regexp.Regexp = regexp.MustCompile(`(?i)<li>(.*?)</li>`)
 )
@@ -31,9 +32,9 @@ func newDataHTML(mdBytes []byte, cssFilePath string) (*dataHTML, error) {
 		return nil, err
 	}
 
-	convertedHTML := linkRe.ReplaceAllString(
+	convertedHTML := linkHTMLRe.ReplaceAllString(
 		strings.ReplaceAll(mdBuf.String(), "</ul>\n<ul>\n", ""), // combine <ul>
-		`<a href="$1.html">$2</a>`,
+		`<a href="$1.html">$2</a>`,                              // replace link paths from md to html
 	)
 	title, err := generateTitleTag(convertedHTML)
 	if err != nil {
@@ -48,7 +49,7 @@ func newDataHTML(mdBytes []byte, cssFilePath string) (*dataHTML, error) {
 }
 
 func generateTitleTag(html string) (template.HTML, error) {
-	matches := titleRe.FindStringSubmatch(html)
+	matches := titleHTMLRe.FindStringSubmatch(html)
 	if len(matches) < 2 {
 		return "", fmt.Errorf("no <h1> tag found")
 	}
@@ -82,7 +83,7 @@ func RenderFileHTML(templateFilePath, mdFilePath, cssFilePath, outputFilePath st
 
 	outHTML, err := CreateWithDirs(outputFilePath)
 	if err != nil {
-		log.Err(err, "LIGMA")
+		log.Err(err, "error creating html output file")
 		return err
 	}
 	defer outHTML.Close()

@@ -39,6 +39,7 @@ func main() {
 	err := utils.CompileCatalog(inputDir, *outputDir)
 	if err != nil {
 		log.Err(err, "error while compiling catalog")
+		os.Exit(1)
 	}
 	log.Info("successfully rendered")
 }
