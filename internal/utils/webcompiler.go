@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"errors"
-
-	log "github.com/gomdhtml/internal/utils/log"
+	"github.com/gomdhtml/internal/config"
+	"github.com/gomdhtml/internal/filework"
+	"github.com/gomdhtml/internal/log"
 )
 
 const (
@@ -19,14 +19,14 @@ const (
 	defaultFileName = ".template"
 )
 
-func CompileCatalog(inputDirPath, outputDirPath string) error {
-	mdDir := filepath.Join(inputDirPath, mdDirName)
+func CompileCatalog(inputDir, outputDir string) error {
+	mdDir := filepath.Join(inputDir, mdDirName)
 
-	if err := RecreateDir(outputDirPath); err != nil {
+	if err := filework.RecreateDir(outputDir); err != nil {
 		return err
 	}
 
-	if err := filepath.WalkDir(mdDir, func(path string, d fs.DirEntry, err error) error {
+	if err := filepath.WalkDir(mdDir, func(mdFile string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -38,26 +38,8 @@ func CompileCatalog(inputDirPath, outputDirPath string) error {
 		log.Debug("walking over filename=" + info.Name())
 
 		if !d.IsDir() && strings.HasSuffix(info.Name(), ".md") {
-			log.Debug("entering compile for filename=" + info.Name())
-			mdRelPath, err := filepath.Rel(mdDir, path)
-			if err != nil {
-				return err
-			}
-
-			log.Debugf("relPath=%s, parentDir=%s", mdRelPath, filepath.Dir(mdRelPath))
-			htmlFilePath, err := resolveInputResoucePath(mdRelPath, htmlDirName, inputDirPath)
-			if err != nil {
-				return errors.New("Default HTML file required: " + htmlFilePath)
-			}
-
-			cssFilePath, err := resolveInputResoucePath(mdRelPath, filepath.Join(staticDirName, cssDirName), inputDirPath)
-			if err != nil {
-				cssFilePath = ""
-			}
-
-			outputFilePath := filepath.Join(outputDirPath, strings.TrimSuffix(mdRelPath, ".md")+".html")
-			log.Debugf("htmlFilePath=%s, path=%s, cssFilePath=%s, outputFilePath=%s", htmlFilePath, path, cssFilePath, outputFilePath)
-			if err := RenderFileHTML(htmlFilePath, path, cssFilePath, outputFilePath); err != nil {
+			log.Debug("entering compile for filename=" + mdFile)
+			if err := RenderFileHTML(mdFile, outputDir); err != nil {
 				return err
 			}
 		}
@@ -66,9 +48,9 @@ func CompileCatalog(inputDirPath, outputDirPath string) error {
 		return err
 	}
 
-	if err := CopyDir( // copy static files (css + images etc.)
-		filepath.Join(inputDirPath, staticDirName),
-		filepath.Join(outputDirPath, staticDirName),
+	if err := filework.CopyDir( // copy static files (css + images etc.)
+		filepath.Join(inputDir, staticDirName),
+		filepath.Join(outputDir, staticDirName),
 	); err != nil {
 		return err
 	}
@@ -76,14 +58,18 @@ func CompileCatalog(inputDirPath, outputDirPath string) error {
 	return nil
 }
 
-func resolveInputResoucePath(mdRelPath, dirName, inputDirPath string) (string, error) { // get according
-	resDir := filepath.Join(inputDirPath, dirName)
-	resFilePath := filepath.Join(resDir, strings.TrimSuffix(mdRelPath, ".md")+"."+filepath.Base(dirName))
-	if _, err := os.Stat(resFilePath); os.IsNotExist(err) {
-		resFilePath = filepath.Join(resDir, defaultFileName+"."+filepath.Base(dirName))
-		if _, err := os.Stat(resFilePath); os.IsNotExist(err) {
+func resolveInputResoucePath(mdFile, dirName string) (string, error) { // get according
+	mdRel, err := filework.GetInputRelPath(mdFile, dirName)
+	if err != nil {
+		return "", err
+	}
+	resDir := filepath.Join(config.Get().InputDir, dirName)
+	resFile := filepath.Join(resDir, strings.TrimSuffix(mdRel, ".md")+"."+filepath.Base(dirName))
+	if _, err := os.Stat(resFile); os.IsNotExist(err) {
+		resFile = filepath.Join(resDir, defaultFileName+"."+filepath.Base(dirName))
+		if _, err := os.Stat(resFile); os.IsNotExist(err) {
 			return "", err
 		}
 	}
-	return resFilePath, nil
+	return resFile, nil
 }
