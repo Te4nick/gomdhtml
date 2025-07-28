@@ -25,11 +25,11 @@ jobs:
           go run ../cmd -config="config.json"
           chmod -R a+rX ./output
 
-      - name: Upload compiled static pages
-        uses: actions/upload-artifact@v4
+      - name: Upload static files as artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: example-pages
-          path: example/output/*
+          path: example/output/
 
   deploy:
       needs: build
