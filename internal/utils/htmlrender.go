@@ -21,7 +21,6 @@ var (
 	// imgHTMLRe   *regexp.Regexp = regexp.MustCompile(`<img\s+src="([^"]+)"\s+alt="([^"]*)"\s*\/?>`)
 	// ulRe    *regexp.Regexp = regexp.MustCompile(`(?i)(<ul>.*?</ul>)(\s*<ul>.*?</ul>)+`)
 	// liRe    *regexp.Regexp = regexp.MustCompile(`(?i)<li>(.*?)</li>`)
-	defaultTitle string = "GOMDHTML Page"
 )
 
 func newDataHTML(mdFile string) (map[string]template.HTML, error) {
@@ -36,23 +35,23 @@ func newDataHTML(mdFile string) (map[string]template.HTML, error) {
 	}
 
 	customDataHTML["CSS"] = generateCSSTag(mdFile)
-	customDataHTML["Title"] = generateTitleTag(contentHTML)
+	customDataHTML["Title"] = generateTitleTag(mdFile, contentHTML)
 	customDataHTML["Content"] = contentHTML
 
 	return customDataHTML, nil
 }
 
-func generateTitleTag(html template.HTML) template.HTML {
+func generateTitleTag(mdFile string, html template.HTML) template.HTML {
 	matches := titleReHTML.FindStringSubmatch(string(html))
-	if len(matches) < 2 {
-		matches[1] = defaultTitle // TODO: os.Base() as defaultTitle
+	if matches != nil && len(matches) < 2 {
+		return template.HTML("<title>" + matches[1] + "</title>")
 	}
 
-	return template.HTML("<title>" + matches[1] + "</title>")
+	return template.HTML("<title>" + strings.TrimSuffix(filepath.Base(mdFile), ".md") + "</title>")
 }
 
 func generateCSSTag(mdFile string) template.HTML {
-	cssFile, err := resolveInputResoucePath(mdFile, filepath.Join(staticDirName, cssDirName))
+	cssFile, err := resolveInputResoucePath(mdFile, filepath.Join(staticDirName, cssDirName), defaultFileName)
 	if err != nil {
 		return ""
 	}
@@ -61,7 +60,7 @@ func generateCSSTag(mdFile string) template.HTML {
 }
 
 func RenderFileHTML(mdFile, outputDir string) error {
-	templateFile, err := resolveInputResoucePath(mdFile, htmlDirName)
+	templateFile, err := resolveInputResoucePath(mdFile, htmlDirName, defaultFileName)
 	if err != nil {
 		return errors.New("Default HTML file required: " + templateFile)
 	}
@@ -81,7 +80,7 @@ func RenderFileHTML(mdFile, outputDir string) error {
 		return err
 	}
 
-	outputFile := filepath.Join(outputDir, strings.TrimSuffix(mdRel, ".md")+".html")
+	outputFile := filepath.Join(outputDir, filework.ReplaceExt(mdRel, "html"))
 	outHTML, err := filework.CreateWithDirs(outputFile)
 	if err != nil {
 		log.Err(err, "error creating html output file")
@@ -121,14 +120,26 @@ func parseCustomDataHTML(mdFile string) (map[string]template.HTML, error) {
 
 	customsHTML := map[string]template.HTML{}
 
-	mdNoExtension := strings.TrimSuffix(mdFile, ".md")
 	for key, suffix := range config.Get().CustomDataKeys {
-		html, err := mdToHTML(mdNoExtension + "-" + suffix + ".md")
+		mdDefaultFileName := defaultFileName + "-" + suffix
+		mdSuffixFile, err := resolveInputResoucePath(
+			filework.AddNameSuffix(mdFile, suffix),
+			mdDirName,
+			mdDefaultFileName,
+		)
+
 		if err != nil {
-			if _, ok := err.(*os.PathError); ok { // TODO: try defaultName-suffix.md
-				customsHTML[key] = ""
-				continue
-			}
+			log.Warnf(
+				"expected default file %s for custom data key {{.%s}}",
+				filepath.Join(mdDirName, mdDefaultFileName+".md"),
+				key,
+			)
+			customsHTML[key] = ""
+			continue
+		}
+
+		html, err := mdToHTML(mdSuffixFile)
+		if err != nil {
 			return nil, err
 		}
 

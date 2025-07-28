@@ -31,13 +31,8 @@ func CompileCatalog(inputDir, outputDir string) error {
 			return err
 		}
 
-		info, err := d.Info()
-		if err != nil {
-			return err
-		}
-		log.Debug("walking over filename=" + info.Name())
-
-		if !d.IsDir() && strings.HasSuffix(info.Name(), ".md") {
+		log.Debug("walking over filename=" + d.Name())
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".md") && !strings.HasPrefix(d.Name(), defaultFileName) {
 			log.Debug("entering compile for filename=" + mdFile)
 			if err := RenderFileHTML(mdFile, outputDir); err != nil {
 				return err
@@ -58,15 +53,16 @@ func CompileCatalog(inputDir, outputDir string) error {
 	return nil
 }
 
-func resolveInputResoucePath(mdFile, dirName string) (string, error) { // get according
+func resolveInputResoucePath(mdFile, dirName, defaultFileName string) (string, error) { // get according
 	mdRel, err := filework.GetInputRelPath(mdFile, dirName)
 	if err != nil {
 		return "", err
 	}
 	resDir := filepath.Join(config.Get().InputDir, dirName)
-	resFile := filepath.Join(resDir, strings.TrimSuffix(mdRel, ".md")+"."+filepath.Base(dirName))
+	resFile := filepath.Join(resDir, filework.ReplaceExt(mdRel, filepath.Base(dirName)))
 	if _, err := os.Stat(resFile); os.IsNotExist(err) {
 		resFile = filepath.Join(resDir, defaultFileName+"."+filepath.Base(dirName))
+		log.Debugf("trying default resource at path :%s", resFile)
 		if _, err := os.Stat(resFile); os.IsNotExist(err) {
 			return "", err
 		}

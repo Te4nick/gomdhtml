@@ -1,7 +1,7 @@
 #!/bin/bash
 name="gomdhtml-nginx"
 
-go run ../cmd
+go run ../cmd -config="config.json"
 
 if [ "$(docker ps -aq -f name=$name)" ]; then
     docker rm -f $name # cleanup

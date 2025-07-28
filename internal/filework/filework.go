@@ -70,3 +70,13 @@ func GetInputRelPath(file, dir string) (string, error) {
 
 	return fileRel, nil
 }
+
+func AddNameSuffix(file, suffix string) string {
+	ext := filepath.Ext(file)
+	noExt := file[:len(file)-len(ext)]
+	return noExt + "-" + suffix + ext
+}
+
+func ReplaceExt(file, newExtName string) string {
+	return file[:len(file)-len(filepath.Ext(file))+1] + newExtName
+}
