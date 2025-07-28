@@ -1,0 +1,46 @@
+name: Github Pages CD
+
+on:
+  push:
+    branches: [ "master" ]
+  workflow_dispatch: # Allows to run this workflow manually from the Actions tab
+
+jobs:
+  build:
+    runs-on: golang:1.24.5-alpine3.22
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get dependencies
+        run: go mod tidy
+
+      - name: Compile static files
+        run: |
+          cd example
+          go run ../cmd -config="config.json"
+
+      - name: Upload compiled static pages
+        uses: actions/upload-artifact@v4
+        with:
+          name: example-pages
+          path: example/output/*
+
+  deploy:
+      needs: build
+  
+      permissions:
+        pages: write
+        id-token: write
+  
+      environment:
+        name: github-pages
+        url: ${{ steps.deployment.outputs.page_url }}
+  
+      runs-on: alpine:3.22
+      steps:
+        - name: Deploy to GitHub Pages
+          id: deployment
+          uses: actions/deploy-pages@v4
+          with:
+            artifact_name: example-pages
